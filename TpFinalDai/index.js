@@ -58,7 +58,34 @@ app.get('/api/event', async (req, res) => {
     res.status(500).json({ error: 'Error obteniendo eventos' });
   }
 })
+app.get('/api/event',async (req, res) =>{
+const{nombre,fecha,tag}=req.query
+try{
+let query=`SELECT * FROM events WHERE 1=1`
+const params = [];
 
+if (nombre) {
+  params.push(`%${nombre}%`);
+  query += ` AND nombre ILIKE $${params.length}`;
+}
+
+if (fecha) {
+  params.push(fecha);
+  query += ` AND DATE (fecha) = $${params.length}`;
+}
+
+if (tag) {
+  params.push(`%${tag}%`);
+  query += ` AND tag ILIKE $${params.length}`;
+}
+const { rows } = await pool.query(query, params);
+res.json(rows);
+}
+catch (err) {
+  console.error(err);
+  res.status(500).send('Error al buscar los eventos');
+}
+})
 
 app.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`);
