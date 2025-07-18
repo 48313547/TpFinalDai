@@ -58,34 +58,44 @@ app.get('/api/event', async (req, res) => {
     res.status(500).json({ error: 'Error obteniendo eventos' });
   }
 })
-app.get('/api/event',async (req, res) =>{
-const{nombre,fecha,tag}=req.query
-try{
-let query=`SELECT * FROM events WHERE 1=1`
-const params = [];
+app.get('/api/event', async (req, res) => {
+  const { nombre, fecha, tag } = req.query;
+  try {
+    console.log('Parametros recibidos:', { nombre, fecha, tag });
+    if (!nombre && !fecha && !tag) {
+      return res.status(400).json({ mensaje: 'Debes proporcionar al menos un parámetro de búsqueda: nombre, fecha o tag.' });
+    }
+    let query = 'SELECT * FROM events WHERE true';
+    const params = [];
 
-if (nombre) {
-  params.push(`%${nombre}%`);
-  query += ` AND nombre ILIKE $${params.length}`;
-}
+    if (nombre) {
+      params.push(`%${nombre}%`);
+      query += ` AND nombre ILIKE $${params.length}`;
+    }
 
-if (fecha) {
-  params.push(fecha);
-  query += ` AND DATE (fecha) = $${params.length}`;
-}
+    if (fecha) {
+      params.push(fecha);
+      query += ` AND DATE(fecha) = $${params.length}`;
+    }
 
-if (tag) {
-  params.push(`%${tag}%`);
-  query += ` AND tag ILIKE $${params.length}`;
-}
-const { rows } = await pool.query(query, params);
-res.json(rows);
-}
-catch (err) {
-  console.error(err);
-  res.status(500).send('Error al buscar los eventos');
-}
-})
+    if (tag) {
+      params.push(`%${tag}%`);
+      query += ` AND tag ILIKE $${params.length}`;
+    }
+
+    console.log('Consulta SQL:', query);
+    console.log('Parametros SQL:', params);
+
+    const { rows } = await pool.query(query, params);
+    if (rows.length === 0) {
+      return res.status(404).json({ mensaje: 'No se encontraron eventos que coincidan con la búsqueda.' });
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error('Error al buscar evento', err);
+    res.status(500).send({ mensaje: 'Error al buscar los eventos' });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`);
